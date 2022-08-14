@@ -36,12 +36,6 @@ class TreeNode:
         strR = f" {self.right.val}" if self.right != None else ""
         return f"({strL}{self.val}{strR})"
 
-    def setLeft(self, node) -> None:
-        self.left = node
-
-    def setRight(self, node) -> None:
-        self.right = node
-
     def leftDepth(self) -> int:
         return 0 if self.left == None else self.left.depth()
 
@@ -70,36 +64,36 @@ class Solution:
 
         if peak.rightDepth() - peak.leftDepth() >= 2:
             newPeak = peak.right
-            newPeak.setLeft(peak)
-            newPeak.left.setRight(None)
+            newPeak.left = peak
+            newPeak.left.right = None
 
         # print(f"rebalance: {peak}, {newPeak}")
         return newPeak
 
     def rotateLeft(self, peak):
         newPeak = peak.right
-        peak.setRight(None)
+        peak.right = None
 
         if newPeak.left != None:
-            peak.setRight(newPeak.left)
+            peak.right = newPeak.left
 
-        newPeak.setLeft(peak)
+        newPeak.left = peak
         peak = newPeak
 
-        peak.setLeft(self.rebalance(peak.left))
+        peak.left = self.rebalance(peak.left)
         return peak
 
     def rotateRight(self, peak):
         newPeak = peak.left
-        peak.setLeft(None)
+        peak.setLeftNone
 
         if newPeak.right != None:
-            peak.setLeft(newPeak.right)
+            peak.left = newPeak.right
 
-        newPeak.setRight(peak)
+        newPeak.right = peak
         peak = newPeak
 
-        peak.setRight(self.rebalance(peak.right))
+        peak.right = self.rebalance(peak.right)
         return peak
 
     def insert(self, peak, node):
@@ -112,11 +106,11 @@ class Solution:
         choice = "left" if node.val < peak.val else "right"
 
         if (choice == "left" and peak.left == None):
-            peak.setLeft(node)
+            peak.left = node
             return peak
 
         if (choice == "right" and peak.right == None):
-            peak.setRight(node)
+            peak.right = node
             return peak
 
         lNode = peak.left
@@ -128,7 +122,7 @@ class Solution:
             if peak.left == None and peak.right != None:
                 tmpR = peak.right
                 peak = self.rotateLeft(peak)
-                tmpR.setRight(node)
+                tmpR.right = node
 
             else:
                 # print(f"insert right; {node.val} {peak}")
@@ -137,7 +131,7 @@ class Solution:
                 elif rDepth - lDepth > 1:
                     print(f"--> what are we doing? {node.val} {peak}")
 
-                peak.setRight(self.insert(peak.right, node))
+                peak.right = self.insert(peak.right, node)
 
             return peak
 
@@ -145,14 +139,14 @@ class Solution:
             if peak.right == None and peak.left != None:
                 tmpL = peak.left
                 peak = self.rotateRight(peak)
-                tmpL.setLeft(node)
+                tmpL.left = node
             else:
                 if lDepth - rDepth == 1:
                     peak = self.rotateRight(peak)
                 elif lDepth - rDepth > 1:
                     print(f"--> what are we doing? {node.val} {peak}")
 
-                peak.setLeft(self.insert(peak.left, node))
+                peak.left = self.insert(peak.left, node)
 
             return peak
 
