@@ -25,9 +25,16 @@ class TreeNode:
         self.left = left
         self.right = right
 
-    # def __str__(self):
+    def __str__(self):
+        strL = f"{self.left} " if self.left != None else ""
+        strR = f" {self.right}" if self.right != None else ""
+        return f"({strL}{self.val}{strR})"
     #     # return f"({self.left} -> {self.val} -> {self.right})"
-    #     return f"({self.left},{self.val},{self.right})"
+
+    def summary(self):
+        strL = f"{self.left.val} " if self.left != None else ""
+        strR = f" {self.right.val}" if self.right != None else ""
+        return f"({strL}{self.val}{strR})"
 
     def setLeft(self, node) -> None:
         self.left = node
@@ -53,6 +60,48 @@ class Solution:
 
     peak = None
 
+    def rebalance(self, peak):
+        newPeak = peak
+        # print(f"rebalance: {peak}, {peak.leftDepth()} {peak.rightDepth()}")
+        if peak.leftDepth() - peak.rightDepth() >= 2:
+            newPeak = peak.left
+            newPeak.right = peak
+            newPeak.right.left = None
+
+        if peak.rightDepth() - peak.leftDepth() >= 2:
+            newPeak = peak.right
+            newPeak.setLeft(peak)
+            newPeak.left.setRight(None)
+
+        # print(f"rebalance: {peak}, {newPeak}")
+        return newPeak
+
+    def rotateLeft(self, peak):
+        newPeak = peak.right
+        peak.setRight(None)
+
+        if newPeak.left != None:
+            peak.setRight(newPeak.left)
+
+        newPeak.setLeft(peak)
+        peak = newPeak
+
+        peak.setLeft(self.rebalance(peak.left))
+        return peak
+
+    def rotateRight(self, peak):
+        newPeak = peak.left
+        peak.setLeft(None)
+
+        if newPeak.right != None:
+            peak.setLeft(newPeak.right)
+
+        newPeak.setRight(peak)
+        peak = newPeak
+
+        peak.setRight(self.rebalance(peak.right))
+        return peak
+
     def insert(self, peak, node):
 
         # decide
@@ -62,78 +111,48 @@ class Solution:
         # initial choice: if neither is populated, then
         choice = "left" if node.val < peak.val else "right"
 
+        if (choice == "left" and peak.left == None):
+            peak.setLeft(node)
+            return peak
+
+        if (choice == "right" and peak.right == None):
+            peak.setRight(node)
+            return peak
+
         lNode = peak.left
         rNode = peak.right
-
-        if (choice == "left" and lNode == None):
-            # print("adding to left")
-            peak.setLeft(node)
-            # print(f"added to left: peak: {peak}")
-            return peak
-
-        if (choice == "right" and rNode == None):
-            # print("adding to right")
-            peak.setRight(node)
-            # print(f"added to right: peak: {peak}")
-            return peak
-
-        # rotate left and set to the right?
-        rVal = rNode.val if rNode != None else None
-        lVal = lNode.val if lNode != None else None
-
-        # print(
-        #     f"** node.val: {node.val} {lVal} -> {peak.val} -> {rVal}  --  balance: l: {lDepth} r: {rDepth}")
-        # print(f"** peak: {peak}")
+        rVal = peak.right.val if peak.right != None else None
+        lVal = peak.left.val if peak.left != None else None
 
         if rVal < node.val:
-            if lNode == None and rNode != None:
-                # print(f"rotate left; node: {node} peak: {peak}")
-                rNode.left = peak
-                peak.right = None
-                peak.left = None
-                rNode.right = node
-                peak = rNode
-                # print(f"rotated left; peak {peak}")
+            if peak.left == None and peak.right != None:
+                tmpR = peak.right
+                peak = self.rotateLeft(peak)
+                tmpR.setRight(node)
+
             else:
-                # print(f"insert right; {node.val} peak: {peak}")
+                # print(f"insert right; {node.val} {peak}")
+                if rDepth - lDepth == 1:
+                    peak = self.rotateLeft(peak)
+                elif rDepth - lDepth > 1:
+                    print(f"--> what are we doing? {node.val} {peak}")
 
-                if (rDepth - lDepth == 1):
-                    # print(f"rotate left (2); node: {node} peak: {peak}")
-                    rNode.left = peak
-                    peak.right = None
-                    peak = rNode
-                    rNode = peak.right
-                    # print(f"rotated left (2); peak {peak}")
-
-                # print(f"inserting right; peak: {rNode.val}")
-
-                peak.right = self.insert(rNode, node)
-                # print(f"inserted right; peak: {peak}")
+                peak.setRight(self.insert(peak.right, node))
 
             return peak
 
         if lVal > node.val:
-            if rNode == None and lNode != None:
-                # print(f"rotate right; node: {node} peak: {peak}")
-                lNode.right = peak
-                peak.right = None
-                peak.left = None
-                lNode.left = node
-                peak = lNode
-                # print(f"rotated right; peak {peak}")
+            if peak.right == None and peak.left != None:
+                tmpL = peak.left
+                peak = self.rotateRight(peak)
+                tmpL.setLeft(node)
             else:
-                # print(f"insert left; {node.val} {peak}")
+                if lDepth - rDepth == 1:
+                    peak = self.rotateRight(peak)
+                elif lDepth - rDepth > 1:
+                    print(f"--> what are we doing? {node.val} {peak}")
 
-                if (lDepth - rDepth == 1):
-                    # print(f"rotate right (2); node: {node} peak: {peak}")
-                    lNode.right = peak
-                    peak.left = None
-                    peak = lNode
-                    lNode = peak.left
-                    # print(f"rotated right (2); peak {peak}")
-
-                peak.left = self.insert(lNode, node)
-                # print(f"inserted left; peak: {peak}")
+                peak.setLeft(self.insert(peak.left, node))
 
             return peak
 
@@ -160,4 +179,7 @@ class Solution:
 # print(Solution().sortedArrayToBST([-10, -3, 0, 5, 9]))
 # print(Solution().sortedArrayToBST([1, 3]))
 
-print(Solution().sortedArrayToBST([0, 1, 2, 3, 4, 5, 6, 7]))
+out3 = Solution().sortedArrayToBST([0, 1, 2, 3, 4, 5, 6, 7])
+exp3 = [4, 2, 6, 1, 3, 5, 7, 0]
+print(out3)
+print(exp3)
