@@ -12,9 +12,24 @@ First solution was to jump to the middle and work a way outwards. However, for a
 tree resorting will be needed. Therefore, process the nodes as they come in, regardless of order.
 
 When inserting into the tree, be sure to only care about what the peak node can see.
+
+# Phase 2
+I had a working answer, but the runtime execution was terrible. Sometimes you have to be open to tossing and idea, start over from
+scratch, and move along.
+
+This new goal is to be totally recursive, with any 'rebalancing' taking place at the bottom tree.
+
+I've noticed that on my mac, I am getting this error: `RecursionError: maximum recursion depth exceeded in comparison`.  This tells me
+that recursion is not the best option.  Instead, I would need to find the next open good spot and keep filling the tree, flipping back
+and forth.
+
+I think overall this is a good solution with recursion. The issue is that the output I am generating with this method is not lining
+with the expected output of leetcode.  I think the solution works (except for the recursion issue above), but I am going to
+implement a solution similar to leetcode's solution.
 '''
 
 
+import json
 from typing import List, Optional
 
 
@@ -26,154 +41,151 @@ class TreeNode:
         self.right = right
 
     def __str__(self):
-        strL = f"{self.left} " if self.left != None else ""
-        strR = f" {self.right}" if self.right != None else ""
-        return f"({strL}{self.val}{strR})"
-    #     # return f"({self.left} -> {self.val} -> {self.right})"
-
-    def summary(self):
         strL = f"{self.left.val} " if self.left != None else ""
         strR = f" {self.right.val}" if self.right != None else ""
-        return f"({strL}{self.val}{strR})"
+        return f"({strL}*{self.val}{strR})"
+
+    def tree(self):
+        l = "" if self.left == None else self.left.tree()
+        r = "" if self.right == None else self.right.tree()
+
+        filtered = " ".join(
+            filter(lambda s: s != "", [l, "[" + str(self.val) + "]", r]))
+
+        return f"({filtered})"
+
+    def childCnt(self):
+        cnt = 0
+        if self.left != None:
+            cnt += 1
+        if self.right != None:
+            cnt += 1
+
+        return cnt
 
     def leftDepth(self) -> int:
-        return 0 if self.left == None else self.left.depth()
+        if self.left == None:
+            return 0
+
+        return 2 if self.left.childCnt() > 0 else 1
 
     def rightDepth(self) -> int:
-        return 0 if self.right == None else self.right.depth()
+        if self.right == None:
+            return 0
 
-    def depth(self) -> int:
-        lDepth = self.leftDepth()
-        rDepth = self.rightDepth()
-        dChildren = lDepth if lDepth > rDepth else rDepth
+        return 2 if self.right.childCnt() > 0 else 1
 
-        return 1 + dChildren
+
+max_iter = None
 
 
 class Solution:
 
     peak = None
 
-    def rebalance(self, peak):
-        newPeak = peak
-        # print(f"rebalance: {peak}, {peak.leftDepth()} {peak.rightDepth()}")
-        if peak.leftDepth() - peak.rightDepth() >= 2:
-            newPeak = peak.left
-            newPeak.right = peak
-            newPeak.right.left = None
-
-        if peak.rightDepth() - peak.leftDepth() >= 2:
-            newPeak = peak.right
-            newPeak.left = peak
-            newPeak.left.right = None
-
-        # print(f"rebalance: {peak}, {newPeak}")
-        return newPeak
-
     def rotateLeft(self, peak):
+        pfx = "rotateLeft;"
+        oldPeak = peak
         newPeak = peak.right
-        peak.right = None
+        oldPeak.right = None
 
         if newPeak.left != None:
-            peak.right = newPeak.left
+            oldPeak.right = newPeak.left
 
-        newPeak.left = peak
-        peak = newPeak
+        newPeak.left = oldPeak
+        return newPeak
 
-        peak.left = self.rebalance(peak.left)
-        return peak
-
-    def rotateRight(self, peak):
-        newPeak = peak.left
-        peak.setLeftNone
-
-        if newPeak.right != None:
-            peak.left = newPeak.right
-
-        newPeak.right = peak
-        peak = newPeak
-
-        peak.right = self.rebalance(peak.right)
-        return peak
+    currDepth = 0
 
     def insert(self, peak, node):
+        self.currDepth += 1
+        pfx = f"insert val:{node.val}, ({self.currDepth})"
 
-        # decide
-        lDepth = peak.leftDepth()
-        rDepth = peak.rightDepth()
+        if peak == None:
+            # print(f"{pfx} self")
+            self.currDepth -= 1
+            return node
 
-        # initial choice: if neither is populated, then
-        choice = "left" if node.val < peak.val else "right"
+        cc = peak.childCnt()
+        lcc = 0 if peak.left == None else peak.left.childCnt()
+        rcc = 0 if peak.right == None else peak.right.childCnt()
+        dStr = f"cc: {cc} lcc: {lcc} rcc: {rcc}"
+        # print(f"{pfx}; {dStr}; {peak}")
 
-        if (choice == "left" and peak.left == None):
-            peak.left = node
+        if cc == 0:
+            # print(f"{pfx}; [add to left (no children)] {peak}")
+            node.left = peak
+            peak = node
+            # print(f"{pfx}; [added to left (no children)] {peak}")
+            self.currDepth -= 1
             return peak
 
-        if (choice == "right" and peak.right == None):
-            peak.right = node
+        if cc == 1:
+            # print(f"{pfx}; [insert right (one child)] {peak}")
+            peak.right = self.insert(peak.right, node)
+            # print(f"{pfx}; [inserted right (one child)] peak -> {peak}")
+            self.currDepth -= 1
             return peak
 
-        lNode = peak.left
-        rNode = peak.right
-        rVal = peak.right.val if peak.right != None else None
-        lVal = peak.left.val if peak.left != None else None
+        # two children.
 
-        if rVal < node.val:
-            if peak.left == None and peak.right != None:
-                tmpR = peak.right
-                peak = self.rotateLeft(peak)
-                tmpR.right = node
-
-            else:
-                # print(f"insert right; {node.val} {peak}")
-                if rDepth - lDepth == 1:
-                    peak = self.rotateLeft(peak)
-                elif rDepth - lDepth > 1:
-                    print(f"--> what are we doing? {node.val} {peak}")
-
-                peak.right = self.insert(peak.right, node)
-
+        if lcc == 0 and rcc == 0:
+            # print(f"{pfx}; [rotate first] {peak}")
+            peak = self.rotateLeft(peak)
+            peak.right = self.insert(peak.right, node)
+            # print(f"{pfx}; [added to right] {peak}")
+            self.currDepth -= 1
             return peak
 
-        if lVal > node.val:
-            if peak.right == None and peak.left != None:
-                tmpL = peak.left
-                peak = self.rotateRight(peak)
-                tmpL.left = node
-            else:
-                if lDepth - rDepth == 1:
-                    peak = self.rotateRight(peak)
-                elif lDepth - rDepth > 1:
-                    print(f"--> what are we doing? {node.val} {peak}")
+        if lcc == 1 and rcc == 1:
+            # print(f"{pfx}; [rotate first] {peak}")
+            peak = self.rotateLeft(peak)
 
-                peak.left = self.insert(peak.left, node)
-
+            # print(f"{pfx}; [add to left] {peak}")
+            peak.right = self.insert(peak.right, node)
+            # print(f"{pfx}; [added to right] {peak}")
+            self.currDepth -= 1
             return peak
 
-        print(
-            f"do nothing node: {node} {lVal} -> {peak.val} -> {rVal}  l: {lDepth} r: {rDepth}")
+        # insert to the right
+        # print(f"{pfx}; [insert right (default)] {peak.tree()}")
+        peak.right = self.insert(peak.right, node)
+        # print(f"{pfx}; peak -> {peak.tree()}")
+
+        self.currDepth -= 1
 
         return peak
 
     def sortedArrayToBST(self, nums: List[int]) -> Optional[TreeNode]:
+        run_count = 0
+
         for num in nums:
-            # print(f"------- num: {num}")
-            node = TreeNode(num, None, None)
+            # print(f"------- {num}, {run_count}")
+            self.peak = self.insert(self.peak, TreeNode(num, None, None))
+            # print(f"------- self.peak: {self.peak.tree()}")
 
-            if self.peak == None:
-                self.peak = node
-                # print(f"set peak: {self.peak.val}")
-
-            else:
-                self.peak = self.insert(self.peak, node)
+            if max_iter:
+                run_count += 1
+                if run_count >= max_iter:
+                    break
 
         return self.peak
 
 
-# print(Solution().sortedArrayToBST([-10, -3, 0, 5, 9]))
-# print(Solution().sortedArrayToBST([1, 3]))
+with open('108-testcases.json', 'r') as testfile_raw:
+    testcases = json.load(testfile_raw)
 
-out3 = Solution().sortedArrayToBST([0, 1, 2, 3, 4, 5, 6, 7])
-exp3 = [4, 2, 6, 1, 3, 5, 7, 0]
-print(out3)
-print(exp3)
+
+for testcase in testcases:
+    max_iter = testcase["max_iter"] if "max_iter" in testcase else None
+
+    if max_iter == 0:
+        continue
+
+    data = testcase["data"]
+    out = Solution().sortedArrayToBST(data)
+    # print(f"data: {data}")
+    print(f"out: {out.tree()}")
+
+    if "expected" in testcase:
+        print(f"expected: {testcase['expected']}")
