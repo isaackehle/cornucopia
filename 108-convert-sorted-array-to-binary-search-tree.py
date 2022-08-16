@@ -26,10 +26,13 @@ and forth.
 I think overall this is a good solution with recursion. The issue is that the output I am generating with this method is not lining
 with the expected output of leetcode.  I think the solution works (except for the recursion issue above), but I am going to
 implement a solution similar to leetcode's solution.
+
+
 '''
 
 
 import json
+import math
 from typing import List, Optional
 
 
@@ -45,36 +48,6 @@ class TreeNode:
         strR = f" {self.right.val}" if self.right != None else ""
         return f"({strL}*{self.val}{strR})"
 
-    def tree(self):
-        l = "" if self.left == None else self.left.tree()
-        r = "" if self.right == None else self.right.tree()
-
-        filtered = " ".join(
-            filter(lambda s: s != "", [l, "[" + str(self.val) + "]", r]))
-
-        return f"({filtered})"
-
-    def childCnt(self):
-        cnt = 0
-        if self.left != None:
-            cnt += 1
-        if self.right != None:
-            cnt += 1
-
-        return cnt
-
-    def leftDepth(self) -> int:
-        if self.left == None:
-            return 0
-
-        return 2 if self.left.childCnt() > 0 else 1
-
-    def rightDepth(self) -> int:
-        if self.right == None:
-            return 0
-
-        return 2 if self.right.childCnt() > 0 else 1
-
 
 max_iter = None
 
@@ -83,93 +56,50 @@ class Solution:
 
     peak = None
 
-    def rotateLeft(self, peak):
-        pfx = "rotateLeft;"
-        oldPeak = peak
-        newPeak = peak.right
-        oldPeak.right = None
+    def setPeak(self, nums: List[int]):
 
-        if newPeak.left != None:
-            oldPeak.right = newPeak.left
+        # print(f"------- nums: {nums}")
 
-        newPeak.left = oldPeak
-        return newPeak
+        sz = len(nums)
+        mod = (sz % 2)
+        ind = int((sz - mod)/2)
+        # print(f"sz: {sz} mod: {mod} ind: {ind}")
 
-    currDepth = 0
+        peak = TreeNode(nums[ind], None, None)
 
-    def insert(self, peak, node):
-        self.currDepth += 1
-        pfx = f"insert val:{node.val}, ({self.currDepth})"
+        lChunk = nums[0:ind]
+        rChunk = nums[ind + 1: sz]
 
-        if peak == None:
-            # print(f"{pfx} self")
-            self.currDepth -= 1
-            return node
+        # print(f"peak: {peak}")
+        # print(f"lChunk: {lChunk}")
+        # print(f"rChunk: {rChunk}")
 
-        cc = peak.childCnt()
-        lcc = 0 if peak.left == None else peak.left.childCnt()
-        rcc = 0 if peak.right == None else peak.right.childCnt()
-        dStr = f"cc: {cc} lcc: {lcc} rcc: {rcc}"
-        # print(f"{pfx}; {dStr}; {peak}")
+        if len(lChunk) > 0:
+            peak.left = self.setPeak(lChunk)
 
-        if cc == 0:
-            # print(f"{pfx}; [add to left (no children)] {peak}")
-            node.left = peak
-            peak = node
-            # print(f"{pfx}; [added to left (no children)] {peak}")
-            self.currDepth -= 1
-            return peak
-
-        if cc == 1:
-            # print(f"{pfx}; [insert right (one child)] {peak}")
-            peak.right = self.insert(peak.right, node)
-            # print(f"{pfx}; [inserted right (one child)] peak -> {peak}")
-            self.currDepth -= 1
-            return peak
-
-        # two children.
-
-        if lcc == 0 and rcc == 0:
-            # print(f"{pfx}; [rotate first] {peak}")
-            peak = self.rotateLeft(peak)
-            peak.right = self.insert(peak.right, node)
-            # print(f"{pfx}; [added to right] {peak}")
-            self.currDepth -= 1
-            return peak
-
-        if lcc == 1 and rcc == 1:
-            # print(f"{pfx}; [rotate first] {peak}")
-            peak = self.rotateLeft(peak)
-
-            # print(f"{pfx}; [add to left] {peak}")
-            peak.right = self.insert(peak.right, node)
-            # print(f"{pfx}; [added to right] {peak}")
-            self.currDepth -= 1
-            return peak
-
-        # insert to the right
-        # print(f"{pfx}; [insert right (default)] {peak.tree()}")
-        peak.right = self.insert(peak.right, node)
-        # print(f"{pfx}; peak -> {peak.tree()}")
-
-        self.currDepth -= 1
+        if len(rChunk) > 0:
+            peak.right = self.setPeak(rChunk)
 
         return peak
 
     def sortedArrayToBST(self, nums: List[int]) -> Optional[TreeNode]:
         run_count = 0
 
-        for num in nums:
-            # print(f"------- {num}, {run_count}")
-            self.peak = self.insert(self.peak, TreeNode(num, None, None))
-            # print(f"------- self.peak: {self.peak.tree()}")
+        self.peak = self.setPeak(nums)
 
-            if max_iter:
-                run_count += 1
-                if run_count >= max_iter:
-                    break
+        print(f"------- {self.peak}")
 
         return self.peak
+
+
+def tree(node):
+    l = "" if node.left == None else tree(node.left)
+    r = "" if node.right == None else tree(node.right)
+
+    filtered = " ".join(
+        filter(lambda s: s != "", [l, "[" + str(node.val) + "]", r]))
+
+    return f"({filtered})"
 
 
 with open('108-testcases.json', 'r') as testfile_raw:
@@ -185,7 +115,7 @@ for testcase in testcases:
     data = testcase["data"]
     out = Solution().sortedArrayToBST(data)
     # print(f"data: {data}")
-    print(f"out: {out.tree()}")
+    print(f"out: {tree(out)}")
 
     if "expected" in testcase:
         print(f"expected: {testcase['expected']}")
