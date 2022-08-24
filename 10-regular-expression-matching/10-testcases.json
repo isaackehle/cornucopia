@@ -1,0 +1,6 @@
+[
+  { "s": "askoefeokogekoe", "p": "ap*s.o", "run": true },
+  { "s": "aa", "p": "a", "run": true },
+  { "s": "aa", "p": "a*", "run": true },
+  { "s": "ab", "p": ".*", "run": true }
+]
