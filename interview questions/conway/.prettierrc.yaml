@@ -1,0 +1,17 @@
+---
+semi: true
+trailingComma: 'all'
+singleQuote: true
+printWidth: 140
+tabWidth: 2
+overrides:
+  - files: '*.ts,*.js'
+    options:
+      semi: true
+      printWidth: 140
+      tabWidth: 2
+  - files: '*.json'
+    options:
+      semi: true
+      printWidth: 140
+      tabWidth: 2
